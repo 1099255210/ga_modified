@@ -47,6 +47,7 @@ class ReverieServer:
     # <fork_sim_code> indicates the simulation we are forking from. 
     # Interestingly, all simulations must be forked from some initial 
     # simulation, where the first simulation is "hand-crafted".
+    # 从先前的模拟继续
     self.fork_sim_code = fork_sim_code
     fork_folder = f"{fs_storage}/{self.fork_sim_code}"
 
@@ -57,6 +58,7 @@ class ReverieServer:
     sim_folder = f"{fs_storage}/{self.sim_code}"
     copyanything(fork_folder, sim_folder)
 
+    # reverie_meta 是从 meta.json 中取的全局数据
     with open(f"{sim_folder}/reverie/meta.json") as json_file:  
       reverie_meta = json.load(json_file)
 
@@ -71,39 +73,37 @@ class ReverieServer:
     # change. It takes a string date in the following example form: 
     # "June 25, 2022"
     # e.g., ...strptime(June 25, 2022, "%B %d, %Y")
+    # 加载全局变量
+    # <start_datetime> 启动时间
     self.start_time = datetime.datetime.strptime(
                         f"{reverie_meta['start_date']}, 00:00:00",  
                         "%B %d, %Y, %H:%M:%S")
     # <curr_time> is the datetime instance that indicates the game's current
     # time. This gets incremented by <sec_per_step> amount everytime the world
     # progresses (that is, everytime curr_env_file is recieved). 
+    # <curr_time> 当前时间，以<sec_per_step>前进
     self.curr_time = datetime.datetime.strptime(reverie_meta['curr_time'], 
                                                 "%B %d, %Y, %H:%M:%S")
-    # <sec_per_step> denotes the number of seconds in game time that each 
-    # step moves foward. 
+    # <sec_per_step> 每个时间步对应的时间
     self.sec_per_step = reverie_meta['sec_per_step']
     
-    # <maze> is the main Maze instance. Note that we pass in the maze_name
-    # (e.g., "double_studio") to instantiate Maze. 
-    # e.g., Maze("double_studio")
+    # <maze> 地图名，用于实例化地图
     self.maze = Maze(reverie_meta['maze_name'])
     
     # <step> denotes the number of steps that our game has taken. A step here
     # literally translates to the number of moves our personas made in terms
     # of the number of tiles. 
+    # <step> 游戏已经运行的步数
     self.step = reverie_meta['step']
 
-    # SETTING UP PERSONAS IN REVERIE
-    # <personas> is a dictionary that takes the persona's full name as its 
-    # keys, and the actual persona instance as its values.
-    # This dictionary is meant to keep track of all personas who are part of
-    # the Reverie instance. 
-    # e.g., ["Isabella Rodriguez"] = Persona("Isabella Rodriguezs")
+    # 在 Reverie 中设置人物角色
+    # <personas> 是一个字典，以人物的全名作为键，以实际人物实例作为值。
+    # 这个字典用于跟踪所有参与 Reverie 实例的人物角色。
+    # 例如，["Isabella Rodriguez"] = Persona("Isabella Rodriguezs")
     self.personas = dict()
-    # <personas_tile> is a dictionary that contains the tile location of
-    # the personas (!-> NOT px tile, but the actual tile coordinate).
-    # The tile take the form of a set, (row, col). 
-    # e.g., ["Isabella Rodriguez"] = (58, 39)
+    # <personas_tile> 是一个包含人物角色位置坐标的字典
+    # 坐标采用集合的形式，(行，列)。
+    # 例如，["Isabella Rodriguez"] = (58, 39)
     self.personas_tile = dict()
     
     # # <persona_convo_match> is a dictionary that describes which of the two
@@ -119,6 +119,7 @@ class ReverieServer:
     # self.persona_convo = dict()
 
     # Loading in all personas. 
+    # 加载所有的人物
     init_env_file = f"{sim_folder}/environment/{str(self.step)}.json"
     init_env = json.load(open(init_env_file))
     for persona_name in reverie_meta['persona_names']: 
@@ -132,9 +133,7 @@ class ReverieServer:
       self.maze.tiles[p_y][p_x]["events"].add(curr_persona.scratch
                                               .get_curr_event_and_desc())
 
-    # REVERIE SETTINGS PARAMETERS:  
-    # <server_sleep> denotes the amount of time that our while loop rests each
-    # cycle; this is to not kill our machine. 
+    # 每个循环睡眠时间，防止过快的请求
     self.server_sleep = 0.1
 
     # SIGNALING THE FRONTEND SERVER: 
@@ -143,6 +142,10 @@ class ReverieServer:
     # used to communicate the code and step information to the frontend. 
     # Note that step file is removed as soon as the frontend opens up the 
     # simulation. 
+    # 通知前端服务器：
+    # curr_sim_code.json 包含当前的模拟信息目录，
+    # curr_step.json 包含模拟的当前步骤。这些用于将代码和步骤信息传递给前端。
+    # 请注意，一旦前端打开模拟，步骤文件就会被删除。
     curr_sim_code = dict()
     curr_sim_code["sim_code"] = self.sim_code
     with open(f"{fs_temp_storage}/curr_sim_code.json", "w") as outfile: 
@@ -290,6 +293,7 @@ class ReverieServer:
       None
     """
     # <sim_folder> points to the current simulation folder.
+    # 当前模拟目录
     sim_folder = f"{fs_storage}/{self.sim_code}"
 
     # When a persona arrives at a game object, we give a unique event
@@ -300,6 +304,12 @@ class ReverieServer:
     # e.g., ('double studio[...]:bed', None, None, None)
     # So we need to keep track of which event we added. 
     # <game_obj_cleanup> is used for that. 
+    # 当人物到达游戏对象时，我们为该对象提供一个唯一的事件。
+    # 例如，('double studio[...]:bed', 'is', 'unmade', 'unmade')
+    # 稍后，在此周期结束之前，我们需要将其返回到初始状态，如下所示：
+    # 例如，('double studio[...]:bed', None, None, None)
+    # 因此，我们需要跟踪我们添加了哪个事件。
+    # <game_obj_cleanup> 用于此目的。
     game_obj_cleanup = dict()
 
     # The main while loop of Reverie. 
@@ -397,6 +407,10 @@ class ReverieServer:
           # {"persona": {"Maria Lopez": {"movement": [58, 9]}},
           #  "persona": {"Klaus Mueller": {"movement": [38, 12]}}, 
           #  "meta": {curr_time: <datetime>}}
+          curr_move_path = f"{sim_folder}/movement"
+          # If the folder doesn't exist, we create it.
+          if not os.path.exists(curr_move_path):
+            os.makedirs(curr_move_path)
           curr_move_file = f"{sim_folder}/movement/{self.step}.json"
           with open(curr_move_file, "w") as outfile: 
             outfile.write(json.dumps(movements, indent=2))
@@ -407,6 +421,8 @@ class ReverieServer:
           self.curr_time += datetime.timedelta(seconds=self.sec_per_step)
 
           int_counter -= 1
+
+          print(f'[Notice]: self.step={self.step}, self.curtime={self.curr_time}, left step={int_counter}')
           
       # Sleep so we don't burn our machines. 
       time.sleep(self.server_sleep)
@@ -605,60 +621,37 @@ if __name__ == '__main__':
   #                    "July1_the_ville_isabella_maria_klaus-step-3-21")
   # rs.open_server()
 
-  origin = input("Enter the name of the forked simulation: ").strip()
-  target = input("Enter the name of the new simulation: ").strip()
+  # origin = input("Enter the name of the forked simulation: ").strip()
+  # target = input("Enter the name of the new simulation: ").strip()
+  import time
+  from noneprompt import ListPrompt, Choice
+  import os
+
+  def do_choice(folder_path:str='.', num:int=7) -> str:
+
+    files = os.listdir(folder_path)
+
+    cs = []
+    sfiles = sorted(files, key=lambda item: os.path.getctime(os.path.join(folder_path, item)), reverse=True)
+    for f in sfiles[:num+1]:
+      f_path = os.path.join(folder_path, f)
+      if os.path.isdir(f_path):
+        cs.append(Choice(f, data=f'{f}'))
+
+    result: Choice[str] = ListPrompt(
+      "Choose the save: ",
+      choices=cs,
+    ).prompt()
+    print(result.data)
+    return result.data
+
+  timestamp = time.time()
+  time_struct = time.localtime(timestamp)
+  formatted_time = time.strftime("%Y%m%d_%H%M%S", time_struct)
+
+  origin = do_choice(fs_storage)
+  # origin = 'base_the_ville_n25'
+  target = f'{formatted_time}_test_n25'
 
   rs = ReverieServer(origin, target)
   rs.open_server()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

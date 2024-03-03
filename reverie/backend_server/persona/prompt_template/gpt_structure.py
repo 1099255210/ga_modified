@@ -13,6 +13,12 @@ from utils import *
 
 openai.api_key = openai_api_key
 
+def get_fmttime() -> str:
+  timestamp = time.time()
+  time_struct = time.localtime(timestamp)
+  formatted_time = time.strftime("%Y%m%d_%H%M%S", time_struct)
+  return formatted_time
+
 def temp_sleep(seconds=0.1):
   time.sleep(seconds)
 
@@ -20,7 +26,7 @@ def ChatGPT_single_request(prompt):
   temp_sleep()
 
   completion = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo", 
+    model="gpt-3.5-turbo-1106", 
     messages=[{"role": "user", "content": prompt}]
   )
   return completion["choices"][0]["message"]["content"]
@@ -71,7 +77,7 @@ def ChatGPT_request(prompt):
   # temp_sleep()
   try: 
     completion = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo", 
+    model="gpt-3.5-turbo-1106", 
     messages=[{"role": "user", "content": prompt}]
     )
     return completion["choices"][0]["message"]["content"]
@@ -206,7 +212,9 @@ def GPT_request(prompt, gpt_parameter):
   RETURNS: 
     a str of GPT-3's response. 
   """
+  start_t = time.time()
   temp_sleep()
+  
   try: 
     response = openai.Completion.create(
                 model=gpt_parameter["engine"],
@@ -218,6 +226,8 @@ def GPT_request(prompt, gpt_parameter):
                 presence_penalty=gpt_parameter["presence_penalty"],
                 stream=gpt_parameter["stream"],
                 stop=gpt_parameter["stop"],)
+    end_t = time.time()
+    print(f"{get_fmttime()}, req time: {end_t - start_t} s.\n")
     return response.choices[0].text
   except: 
     print ("TOKEN LIMIT EXCEEDED")
@@ -282,7 +292,7 @@ def get_embedding(text, model="text-embedding-ada-002"):
 
 
 if __name__ == '__main__':
-  gpt_parameter = {"engine": "text-davinci-003", "max_tokens": 50, 
+  gpt_parameter = {"engine": "gpt-3.5-turbo-instruct", "max_tokens": 50, 
                    "temperature": 0, "top_p": 1, "stream": False,
                    "frequency_penalty": 0, "presence_penalty": 0, 
                    "stop": ['"']}

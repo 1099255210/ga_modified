@@ -1,10 +1,16 @@
-reverie/backend_server/utils.py
-frontend_server/settings/local.py
+# reverie/backend_server/utils.py
+# frontend_server/settings/local.py
 storage/*
 static_dirs/*
 
 !storage/base_the_ville_isabella_maria_klaus/*
 !storage/base_the_ville_n25/*
+
+storage/
+temp_storage
+.VSCodeCounter
+prompt_copy
+newpersona
 
 bin/
 include/
