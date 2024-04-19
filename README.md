@@ -2,6 +2,8 @@
 
 # Generative Agents: Interactive Simulacra of Human Behavior 
 
+***注：这是一个修改过的版本，主要根据issues修改了一些原仓库的问题，以及将一些过时的昂贵模型替换为当前官网上的平价模型，对代码结构并没有做出什么改变***
+
 ## 使用指南
 
 ### 配置 api_key
@@ -25,7 +27,7 @@ cd environment/frontend_server
 python manage.py runserver
 ```
 
-然后在浏览器打开提示的网址 [http://127.0.0.1:8000/]，注意这个页面要保持开启状态，不知道为什么作者的后端和前端有如此紧密的联系（建议使用 chrome）。
+然后在浏览器打开提示的网址 <http://127.0.0.1:8000/>，注意这个页面要保持开启状态，不知道为什么作者的后端和前端有如此紧密的联系（建议使用 chrome）。
 
 接着开启后端：
 
@@ -38,6 +40,8 @@ python reverie.py
 
 这时后端已经开启，输入 `run 10` 就可以向后运行十个 steps。
 
+网页上打开 <http://127.0.0.1:8000/simulator_home> 可以看到当前的模拟情况
+
 ### 查看回放
 
 如果想要查看当前存档的回放，可以在浏览器中输入：```http://127.0.0.1:8000/[存档名]/[step]```
@@ -46,4 +50,4 @@ python reverie.py
 
 ## 其余内容
 
-需要更多的信息查看原仓库： [https://github.com/joonspk-research/generative_agents]
+需要更多的信息查看原仓库： <https://github.com/joonspk-research/generative_agents>
